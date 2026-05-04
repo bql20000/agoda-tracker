@@ -460,9 +460,17 @@ async def scrape_prices(
     inter_hotel_delay: float,
     xhr_timeout: float,
     retry_count: int,
+    concurrency: int = 3,
 ) -> list[PriceResult]:
-    """Scrape prices for every (hotel_id, check_in) pair sequentially."""
-    results: list[PriceResult] = []
+    """Scrape prices for every (hotel_id, check_in) pair concurrently.
+
+    Each target gets its own browser context (isolated cookies/state), so they
+    can safely run in parallel. ``concurrency`` caps how many pages are open at
+    once — keeps memory bounded and reduces the risk of Agoda rate-limiting.
+    ``inter_hotel_delay`` is kept as a stagger between task *starts* so requests
+    don't all hit Agoda at the exact same millisecond.
+    """
+    sem = asyncio.Semaphore(concurrency)
 
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(
@@ -474,46 +482,53 @@ async def scrape_prices(
             ],
         )
 
+        async def _scrape_with_retry(hotel_id: int, check_in: str) -> PriceResult:
+            async with sem:
+                attempt = 0
+                result: Optional[PriceResult] = None
+                while attempt <= retry_count:
+                    attempt += 1
+                    result = await _scrape_one(
+                        browser,
+                        hotel_id,
+                        check_in,
+                        currency=currency,
+                        adults=adults,
+                        rooms=rooms,
+                        xhr_timeout=xhr_timeout,
+                    )
+                    if result.price is not None:
+                        break
+                    log.warning(
+                        "Attempt %d failed for hotel=%s date=%s: %s",
+                        attempt,
+                        hotel_id,
+                        check_in,
+                        result.error,
+                    )
+                    if attempt <= retry_count:
+                        await asyncio.sleep(1)
+
+                assert result is not None
+                log.info(
+                    "hotel=%s date=%s price=%s source=%s rooms_seen=%s",
+                    hotel_id,
+                    check_in,
+                    result.price,
+                    result.source,
+                    result.raw_room_count,
+                )
+                return result
+
+        # Stagger task launches by inter_hotel_delay so requests don't all fire
+        # simultaneously, but don't block on each one finishing first.
+        tasks: list[asyncio.Task[PriceResult]] = []
         for i, (hotel_id, check_in) in enumerate(targets):
-            attempt = 0
-            result: Optional[PriceResult] = None
-            while attempt <= retry_count:
-                attempt += 1
-                result = await _scrape_one(
-                    browser,
-                    hotel_id,
-                    check_in,
-                    currency=currency,
-                    adults=adults,
-                    rooms=rooms,
-                    xhr_timeout=xhr_timeout,
-                )
-                if result.price is not None:
-                    break
-                log.warning(
-                    "Attempt %d failed for hotel=%s date=%s: %s",
-                    attempt,
-                    hotel_id,
-                    check_in,
-                    result.error,
-                )
-                if attempt <= retry_count:
-                    await asyncio.sleep(5)
-
-            assert result is not None
-            results.append(result)
-            log.info(
-                "hotel=%s date=%s price=%s source=%s rooms_seen=%s",
-                hotel_id,
-                check_in,
-                result.price,
-                result.source,
-                result.raw_room_count,
-            )
-
-            # Polite delay between hotels (skip after the last one)
-            if i < len(targets) - 1:
+            if i > 0 and inter_hotel_delay > 0:
                 await asyncio.sleep(inter_hotel_delay)
+            tasks.append(asyncio.create_task(_scrape_with_retry(hotel_id, check_in)))
+
+        results = list(await asyncio.gather(*tasks))
 
         await browser.close()
 

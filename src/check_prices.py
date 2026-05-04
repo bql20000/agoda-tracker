@@ -118,6 +118,7 @@ async def main() -> int:
         inter_hotel_delay=float(settings["inter_hotel_delay_seconds"]),
         xhr_timeout=float(settings["xhr_timeout_seconds"]),
         retry_count=int(settings["retry_count"]),
+        concurrency=int(settings.get("concurrency", 10)),
     )
 
     # Compare against last seen, fire alerts, persist state

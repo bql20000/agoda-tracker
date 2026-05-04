@@ -21,5 +21,9 @@ xhr_timeout_seconds: 25
 # How many times to retry a single (hotel, date) on transient failure.
 retry_count: 2
 
+# Max number of hotel/date pages scraped concurrently.
+# Higher = faster, but raises bot-detection risk. 10 is a good default.
+concurrency: 10
+
 # Enable verbose logging.
 debug: true

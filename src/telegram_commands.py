@@ -38,6 +38,8 @@ from typing import Any
 
 import yaml
 
+from src.state import load_last_prices as _load_last_prices
+
 log = logging.getLogger(__name__)
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -45,7 +47,6 @@ CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
 OFFSET_FILE = DATA_DIR / "telegram_offset.json"
 BOOKINGS_FILE = CONFIG_DIR / "bookings.yaml"
 HOTELS_FILE = CONFIG_DIR / "hotels.yaml"
-LAST_PRICES_FILE = DATA_DIR / "last_prices.json"
 
 SOLD_OUT_PRICE = 9999.0
 
@@ -298,13 +299,8 @@ def _handle_listhotels(token: str, chat_id: str) -> None:
 
 def _handle_lastprices(token: str, chat_id: str) -> None:
     """Show the last recorded price for every tracked hotel × date combination."""
-    if not LAST_PRICES_FILE.exists():
-        _send(token, chat_id, "ℹ️ No price data yet — run a price check first.")
-        return
-
     try:
-        with LAST_PRICES_FILE.open() as f:
-            last_prices: dict[str, float] = json.load(f)
+        last_prices = _load_last_prices()
     except Exception as exc:
         log.error("Failed to read last_prices.json: %s", exc)
         _send(token, chat_id, "❌ Could not read price data.")
@@ -317,10 +313,11 @@ def _handle_lastprices(token: str, chat_id: str) -> None:
     hotels = _load_hotels()
     hotel_names = {str(h["id"]): h["name"] for h in hotels}
 
-    # Group entries by hotel_id
+    # Group entries by hotel_id; each value is a PriceEntry dict {"name": ..., "price": float}
     by_hotel: dict[str, list[tuple[str, float]]] = defaultdict(list)
-    for key, price in last_prices.items():
+    for key, entry in last_prices.items():
         hotel_id, check_in = key.split("|", 1)
+        price: float = entry["price"] if isinstance(entry, dict) else float(entry)
         by_hotel[hotel_id].append((check_in, price))
 
     lines = ["*💰 Last observed prices:*", ""]
