@@ -1,0 +1,74 @@
+name: Check Agoda Prices
+
+on:
+  schedule:
+    # Runs at the 5th minute of every hour, UTC.
+    # Note: GitHub Actions cron has a known scheduling delay of up to 15 min
+    # under load. If exact :05 is critical, raise the frequency.
+    - cron: '5 * * * *'
+  workflow_dispatch:    # allow manual trigger from the Actions tab
+
+# Only one run at a time. If a previous run is still going (e.g. slow scrape),
+# skip the next one rather than queue/parallelise.
+concurrency:
+  group: agoda-price-check
+  cancel-in-progress: false
+
+jobs:
+  check-prices:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: write    # needed to commit data/ back
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-1.47.0
+
+      - name: Install Playwright Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: python -m playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: python -m playwright install-deps chromium
+
+      - name: Run price check
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python -m src.check_prices
+
+      - name: Commit updated state
+        if: always()    # commit even if scrape partially failed (history is useful)
+        run: |
+          git config user.name  "agoda-tracker-bot"
+          git config user.email "agoda-tracker-bot@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then
+            echo "No state changes to commit."
+          else
+            git commit -m "chore(state): update prices $(date -u +%Y-%m-%dT%H:%MZ)"
+            # Pull-rebase before push to handle the race where two runs overlap
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+            git push
+          fi

@@ -1,0 +1,20 @@
+# Hotel list managed via Telegram bot commands.
+# Use /setprice <index> <max> to update the target max price.
+# To add or remove hotels, edit this file directly.
+
+hotels:
+  - id: 68596133
+    name: "Social on Outram"
+    desired_price_max: 100
+  - id: 80245389
+    name: "Social on Mayo"
+    desired_price_max: 100
+  - id: 63668683
+    name: "Social on Mayo"
+    desired_price_max: 100
+  - id: 79994438
+    name: "A Hotel Farrer Park"
+    desired_price_max: 100
+  - id: 59798370
+    name: "A Hotel Dickson"
+    desired_price_max: 100

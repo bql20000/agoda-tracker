@@ -1,0 +1,58 @@
+name: Process Telegram Commands
+
+on:
+  schedule:
+    # Poll every 5 minutes for new bot commands.
+    # Note: GitHub Actions cron can be up to ~5 min late under load,
+    # so effective latency is 5–10 minutes — acceptable for this use case.
+    - cron: '*/5 * * * *'
+  workflow_dispatch:   # allow manual trigger for testing
+
+# Only one instance at a time. If the previous poll is somehow still running
+# (shouldn't happen at 3-min timeout), cancel it and let the new one proceed.
+concurrency:
+  group: telegram-commands
+  cancel-in-progress: true
+
+jobs:
+  process-commands:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    permissions:
+      contents: write   # needed to commit bookings.yaml + offset back
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install PyYAML==6.0.2
+
+      - name: Process Telegram commands
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python -m src.telegram_commands
+
+      - name: Commit changes
+        # Always commit — even if bookings didn't change, the offset file
+        # must be updated so we don't reprocess the same messages next run.
+        if: always()
+        run: |
+          git config user.name  "agoda-tracker-bot"
+          git config user.email "agoda-tracker-bot@users.noreply.github.com"
+          git add data/telegram_offset.json config/bookings.yaml config/hotels.yaml
+          if git diff --cached --quiet; then
+            echo "Nothing changed."
+          else
+            git commit -m "chore(commands): process Telegram updates $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+            git push
+          fi

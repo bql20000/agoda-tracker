@@ -1,0 +1,25 @@
+# Global runtime settings.
+
+# Alert if absolute % change vs. last observed price is >= this value.
+# 10.0 = 10% change either direction.
+alert_threshold_pct: 10.0
+
+# Currency to request from Agoda. SGD recommended for Singapore hotels.
+currency: "SGD"
+
+# Number of adults / rooms (kept simple — change if you book differently).
+adults: 2
+rooms: 1
+
+# Per-hotel scrape settings.
+# Delay (seconds) between hotels to look like a human, not a bot.
+inter_hotel_delay_seconds: 8
+
+# Max time we wait for the GetSecondaryData XHR response.
+xhr_timeout_seconds: 25
+
+# How many times to retry a single (hotel, date) on transient failure.
+retry_count: 2
+
+# Enable verbose logging.
+debug: false
