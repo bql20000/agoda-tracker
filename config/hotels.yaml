@@ -12,9 +12,20 @@ hotels:
   - id: 63668683
     name: "Hotel JJH"
     desired_price_max: 100
+  - id: 45214534
+    name: "Amrise Hotel Kitchener"
+    desired_price_max: 100
+
+  - id: 59828233
+    name: "A Hotel Bugis"
+    desired_price_max: 100
   - id: 79994438
     name: "A Hotel Farrer Park"
     desired_price_max: 100
   - id: 59798370
     name: "A Hotel Dickson"
+    desired_price_max: 100
+
+  - id: 41984142
+    name: "ST Signature Bugis Middle"
     desired_price_max: 100

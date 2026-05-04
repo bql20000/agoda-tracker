@@ -154,12 +154,12 @@ async def main() -> int:
                 r.check_in,
                 r.error,
             )
-            update_last_price(last_prices, r.hotel_id, r.check_in, 9999.0)
+            update_last_price(last_prices, r.hotel_id, r.check_in, 9999.0, hotel_name=hotel["name"])
             continue
 
         successes += 1
         previous = get_last_price(last_prices, r.hotel_id, r.check_in)
-        update_last_price(last_prices, r.hotel_id, r.check_in, r.price)
+        update_last_price(last_prices, r.hotel_id, r.check_in, r.price, hotel_name=hotel["name"])
 
         if previous is None:
             log.info(

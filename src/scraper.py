@@ -52,6 +52,11 @@ _XHR_PATTERNS = [
     re.compile(r"/api/.*[Ss]econdary[Dd]ata", re.IGNORECASE),
     re.compile(r"GetRoomGridData", re.IGNORECASE),
     re.compile(r"/Hotel/.*Rooms", re.IGNORECASE),
+    # Search-page API (used when partnersearch.aspx redirects to /search)
+    re.compile(r"/api/cronos/search/GetResult", re.IGNORECASE),
+    re.compile(r"/api/cronos/property/BelowFold", re.IGNORECASE),
+    re.compile(r"UnifiedSearch", re.IGNORECASE),
+    re.compile(r"/api/en-us/price/", re.IGNORECASE),
 ]
 
 
@@ -67,17 +72,22 @@ def _build_hotel_url(
 
     Using the SG locale and explicit cid to skip locale-detection redirects.
     """
+    # Use the /search page with selectedproperty — this is the URL Agoda
+    # actually loads (partnersearch.aspx redirects here anyway) and ensures
+    # the room-grid XHR fires correctly.
+    # city=4064 = Singapore; los=1 = length of stay 1 night.
     return (
-        f"https://www.agoda.com/partners/partnersearch.aspx"
-        f"?cid=1844104"
-        f"&hl=en-us"
-        f"&hid={hotel_id}"
+        f"https://www.agoda.com/search"
+        f"?selectedproperty={hotel_id}"
         f"&checkIn={check_in}"
         f"&checkOut={check_out}"
         f"&rooms={rooms}"
         f"&adults={adults}"
         f"&children=0"
+        f"&los=1"
         f"&currencyCode={currency}"
+        f"&city=4064"
+        f"&hl=en-us"
     )
 
 
@@ -126,6 +136,132 @@ def _extract_min_price_from_xhr(payload: Any) -> tuple[Optional[float], int]:
     return (min(sane) if sane else min(prices)), room_count
 
 
+def _hotel_id_in_xhr(payload: Any, hotel_id: int) -> bool:
+    """Return True if the XHR payload contains the expected hotel ID.
+
+    Used to reject XHR responses that belong to a different hotel (e.g. Agoda
+    returns search-results data for a different property than requested).
+    """
+    hotel_id_str = str(hotel_id)
+
+    def walk(node: Any, depth: int = 0) -> bool:
+        if depth > 10:
+            return False
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k.lower() in ("hotelid", "hotel_id", "propertyid", "property_id", "hid"):
+                    if str(v) == hotel_id_str:
+                        return True
+                if walk(v, depth + 1):
+                    return True
+        elif isinstance(node, list):
+            for item in node[:20]:  # cap list scanning to avoid huge arrays
+                if walk(item, depth + 1):
+                    return True
+        elif isinstance(node, (str, int)):
+            if str(node) == hotel_id_str:
+                return True
+        return False
+
+    return walk(payload)
+
+
+async def _extract_price_from_dom(page: "Page", hotel_id: int) -> tuple[Optional[float], int, bool]:
+    """Returns (price, room_count, is_sold_out).
+
+    is_sold_out=True means the hotel card was found and explicitly shows
+    sold-out text — callers must NOT fall through to any HTML fallback.
+    is_sold_out=False means either a price was found, or the card wasn't
+    located at all (ambiguous — caller may try HTML fallback).
+    """
+    """Use Playwright JS evaluation to find the price inside the specific hotel
+    card on the search-results page.
+
+    Agoda renders each property card with a data-hotelid (or similar) attribute,
+    so we can scope the price lookup to the correct card instead of grabbing
+    whatever appears first on screen.
+    """
+    try:
+        result = await page.evaluate(  # type: ignore[assignment]
+            """(hotelId) => {
+                const idStr = String(hotelId);
+
+                // --- 1. Find the hotel card by data attribute ---
+                const attrCandidates = [
+                    '[data-hotelid="' + idStr + '"]',
+                    '[data-hotel-id="' + idStr + '"]',
+                    '[data-property-id="' + idStr + '"]',
+                    '[data-id="' + idStr + '"]',
+                ];
+                let card = null;
+                for (const sel of attrCandidates) {
+                    const el = document.querySelector(sel);
+                    if (el) {
+                        card = el.closest('[class*="card" i], [class*="property" i], [class*="listing" i], li, article') || el;
+                        break;
+                    }
+                }
+
+                // --- 2. Fallback: find any element whose href contains the hotel ID ---
+                if (!card) {
+                    const links = Array.from(document.querySelectorAll('a[href*="/' + idStr + '"], a[href*="hid=' + idStr + '"], a[href*="selectedproperty=' + idStr + '"]'));
+                    if (links.length > 0) {
+                        card = links[0].closest('[class*="card" i], [class*="property" i], [class*="listing" i], li, article') || links[0].parentElement;
+                    }
+                }
+
+                if (!card) return null;
+
+                // --- 3. Bail out early if the card shows sold-out text ---
+                const cardText = (card.innerText || card.textContent || '').toLowerCase();
+                const soldOutPhrases = ['sold out', 'unavailable', 'no rooms', 'not available'];
+                for (const phrase of soldOutPhrases) {
+                    if (cardText.includes(phrase)) return 'SOLD_OUT';
+                }
+
+                // --- 4. Extract the price from within that card using structured selectors only ---
+                // Do NOT fall back to free-text scraping — review counts, distances, and
+                // ratings share the card and produce false positives (e.g. "1,036 reviews"
+                // yields 36 via regex word-boundary split on the comma).
+                const priceSelectors = [
+                    '[data-element-name="final-price"]',
+                    '[data-element-name="display-price"]',
+                    '[data-element-name="discountedPrice"]',
+                    '[class*="discounted-price" i]',
+                    '[class*="actual-price" i]',
+                    '[class*="PropertyCardPrice" i]',
+                    '[class*="price--strong" i]',
+                ];
+                for (const psel of priceSelectors) {
+                    const el = card.querySelector(psel);
+                    if (el) {
+                        // Strip everything except digits and a single dot
+                        const text = el.textContent.replace(/[^0-9.]/g, '');
+                        const num = parseFloat(text);
+                        if (!isNaN(num) && num >= 30 && num <= 50000) return num;
+                    }
+                }
+
+                return null;
+            }""",
+            hotel_id,
+        )
+        if result == "SOLD_OUT":
+            log.debug("DOM card for hotel %s shows sold-out text — no price available", hotel_id)
+            return None, 0, True  # definitively sold out — stop here
+        if result is not None:
+            price = float(result)
+            if 30 <= price <= 50_000:
+                log.debug("DOM card extraction for hotel %s → %.2f", hotel_id, price)
+                return price, 1, False
+            else:
+                log.debug("DOM card for hotel %s returned implausible value %.2f — discarding", hotel_id, price)
+    except Exception as exc:  # noqa: BLE001
+        log.debug("DOM card extraction error for hotel %s: %s", hotel_id, exc)
+
+    return None, 0, False  # card not found or no price — caller may try HTML fallback
+
+
 def _extract_min_price_from_html(html: str) -> tuple[Optional[float], int]:
     """Fallback: parse Agoda's embedded JSON or visible price text from HTML.
 
@@ -149,10 +285,19 @@ def _extract_min_price_from_html(html: str) -> tuple[Optional[float], int]:
 
     # 2. Visible price elements: data-element-name="final-price" etc.
     price_re = re.compile(
-        r'data-element-name="(?:final-price|display-price)"[^>]*>[^0-9<]*([\d,]+(?:\.\d+)?)',
+        r'data-element-name="(?:final-price|display-price|discountedPrice|priceDetail)"[^>]*>[^0-9<]*([\d,]+(?:\.\d+)?)',
         re.IGNORECASE,
     )
     matches = [float(m.replace(",", "")) for m in price_re.findall(html)]
+
+    # 3. Search-results page: prices rendered in spans with specific class names
+    if not matches:
+        search_price_re = re.compile(
+            r'class="[^"]*(?:PropertyCardPrice|price-info|actual-price|discounted-price)[^"]*"[^>]*>[^0-9<]*([\d,]+(?:\.\d+)?)',
+            re.IGNORECASE,
+        )
+        matches = [float(m.replace(",", "")) for m in search_price_re.findall(html)]
+
     if matches:
         sane = [p for p in matches if 30 <= p <= 50_000]
         return (min(sane) if sane else min(matches)), len(matches)
@@ -212,21 +357,67 @@ async def _scrape_one(
         except PlaywrightTimeout:
             log.debug("networkidle timeout for hotel %s — proceeding anyway", hotel_id)
 
-        # Path 1: XHR was captured
+        # Path 1: XHR was captured — validate it belongs to the right hotel
         if captured_payload.get("data") is not None:
-            price, count = _extract_min_price_from_xhr(captured_payload["data"])
-            if price is not None:
-                return PriceResult(
-                    hotel_id=hotel_id,
-                    check_in=check_in,
-                    price=price,
-                    currency=currency,
-                    source="xhr",
-                    raw_room_count=count,
+            xhr_url = captured_payload.get("url", "")
+            payload = captured_payload["data"]
+            if _hotel_id_in_xhr(payload, hotel_id):
+                price, count = _extract_min_price_from_xhr(payload)
+                if price is not None:
+                    log.debug("XHR hit for hotel %s via %s", hotel_id, xhr_url)
+                    return PriceResult(
+                        hotel_id=hotel_id,
+                        check_in=check_in,
+                        price=price,
+                        currency=currency,
+                        source="xhr",
+                        raw_room_count=count,
+                    )
+            else:
+                log.debug(
+                    "XHR captured for hotel %s but hotel ID not found in payload — "
+                    "response likely belongs to a different property, skipping.",
+                    hotel_id,
                 )
 
-        # Path 2: parse the rendered HTML
+        # Path 2: DOM card extraction — scoped to the specific hotel card by ID.
+        # This is the most reliable method on search-results pages because it
+        # finds the card attributed to the target hotel before reading its price.
+        price, count, is_sold_out = await _extract_price_from_dom(page, hotel_id)
+        if is_sold_out:
+            # The card was found and explicitly says sold out — do NOT fall through
+            # to HTML fallback, which would pick up prices from other hotels on the page.
+            return PriceResult(
+                hotel_id=hotel_id,
+                check_in=check_in,
+                price=None,
+                currency=currency,
+                source="none",
+                error="Sold out on requested dates",
+            )
+        if price is not None:
+            return PriceResult(
+                hotel_id=hotel_id,
+                check_in=check_in,
+                price=price,
+                currency=currency,
+                source="dom",
+                raw_room_count=count,
+            )
+
+        # Path 3: parse the rendered HTML (unscoped fallback)
         html = await page.content()
+        # Only use HTML fallback if the hotel ID appears somewhere on the page —
+        # a basic guard against parsing a completely wrong page.
+        if str(hotel_id) not in html:
+            return PriceResult(
+                hotel_id=hotel_id,
+                check_in=check_in,
+                price=None,
+                currency=currency,
+                source="none",
+                error=f"Hotel ID {hotel_id} not found anywhere on page — wrong page loaded",
+            )
         price, count = _extract_min_price_from_html(html)
         if price is not None:
             return PriceResult(

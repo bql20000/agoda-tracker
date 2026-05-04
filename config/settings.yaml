@@ -22,4 +22,4 @@ xhr_timeout_seconds: 25
 retry_count: 2
 
 # Enable verbose logging.
-debug: false
+debug: true

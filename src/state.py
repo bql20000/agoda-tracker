@@ -20,27 +20,55 @@ def _key(hotel_id: int, check_in: str) -> str:
     return f"{hotel_id}|{check_in}"
 
 
-def load_last_prices() -> dict[str, float]:
-    """Returns a mapping of '<hotel_id>|<check_in>' -> last observed price."""
+PriceEntry = dict  # {"name": str, "price": float}
+
+
+def load_last_prices() -> dict[str, PriceEntry]:
+    """Returns a mapping of '<hotel_id>|<check_in>' -> {"name": ..., "price": ...}.
+
+    Transparently upgrades old plain-float entries so existing data isn't lost.
+    """
     if not LAST_PRICES_FILE.exists():
         return {}
     try:
         with LAST_PRICES_FILE.open() as f:
-            return json.load(f)
+            raw: dict = json.load(f)
+        # Migrate any legacy plain-float values to the new dict shape.
+        upgraded = {}
+        for k, v in raw.items():
+            if isinstance(v, (int, float)):
+                upgraded[k] = {"name": "", "price": float(v)}
+            else:
+                upgraded[k] = v
+        return upgraded
     except (json.JSONDecodeError, OSError) as exc:
         log.warning("Failed to load last prices: %s — starting fresh", exc)
         return {}
 
 
-def get_last_price(state: dict[str, float], hotel_id: int, check_in: str) -> Optional[float]:
-    return state.get(_key(hotel_id, check_in))
+def get_last_price(state: dict[str, PriceEntry], hotel_id: int, check_in: str) -> Optional[float]:
+    entry = state.get(_key(hotel_id, check_in))
+    if entry is None:
+        return None
+    return entry.get("price")
 
 
-def update_last_price(state: dict[str, float], hotel_id: int, check_in: str, price: float) -> None:
-    state[_key(hotel_id, check_in)] = price
+def update_last_price(
+    state: dict[str, PriceEntry],
+    hotel_id: int,
+    check_in: str,
+    price: float,
+    hotel_name: str = "",
+) -> None:
+    key = _key(hotel_id, check_in)
+    existing_name = state.get(key, {}).get("name", "")
+    state[key] = {
+        "name": hotel_name or existing_name,
+        "price": price,
+    }
 
 
-def save_last_prices(state: dict[str, float]) -> None:
+def save_last_prices(state: dict[str, PriceEntry]) -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     with LAST_PRICES_FILE.open("w") as f:
         json.dump(state, f, indent=2, sort_keys=True)
