@@ -9,11 +9,11 @@
   },
   "59798370|2026-05-08": {
     "name": "A Hotel Dickson",
-    "price": 60.0
+    "price": 67.0
   },
   "59828233|2026-05-08": {
     "name": "A Hotel Bugis",
-    "price": 98.0
+    "price": 94.0
   },
   "63668683|2026-05-08": {
     "name": "Hotel JJH",
@@ -25,10 +25,14 @@
   },
   "79994438|2026-05-08": {
     "name": "A Hotel Farrer Park",
-    "price": 91.0
+    "price": 84.0
   },
   "80245389|2026-05-08": {
     "name": "Social on Mayo",
     "price": 87.0
+  },
+  "90401|2026-05-08": {
+    "name": "Link Hotel",
+    "price": 83.0
   }
 }
