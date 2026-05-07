@@ -2,10 +2,9 @@ name: Check Agoda Prices
 
 on:
   schedule:
-    # Runs at the 5th minute of every hour, UTC.
-    # Note: GitHub Actions cron has a known scheduling delay of up to 15 min
-    # under load. If exact :05 is critical, raise the frequency.
-    - cron: '5 * * * *'
+    # Runs every 5 minutes.
+    # Note: GitHub Actions cron has a known scheduling delay under load.
+    - cron: '*/5 * * * *'
   workflow_dispatch:    # allow manual trigger from the Actions tab
 
 # Only one run at a time. If a previous run is still going (e.g. slow scrape),

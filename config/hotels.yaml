@@ -29,3 +29,6 @@ hotels:
   - id: 41984142
     name: "ST Signature Bugis Middle"
     desired_price_max: 100
+  - id: 90401
+    name: "Link Hotel"
+    desired_price_max: 100
