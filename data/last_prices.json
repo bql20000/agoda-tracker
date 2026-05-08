@@ -1,15 +1,15 @@
 {
   "41984142|2026-05-08": {
     "name": "ST Signature Bugis Middle",
-    "price": 84.0
+    "price": 81.0
   },
   "45214534|2026-05-08": {
     "name": "Amrise Hotel Kitchener",
-    "price": 91.0
+    "price": 77.0
   },
   "59798370|2026-05-08": {
     "name": "A Hotel Dickson",
-    "price": 67.0
+    "price": 77.0
   },
   "59828233|2026-05-08": {
     "name": "A Hotel Bugis",
@@ -33,6 +33,6 @@
   },
   "90401|2026-05-08": {
     "name": "Link Hotel",
-    "price": 83.0
+    "price": 78.0
   }
 }
