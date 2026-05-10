@@ -2,5 +2,5 @@
 # Use /adddate YYYY-MM-DD [label] to add, /removedate YYYY-MM-DD to remove.
 
 bookings:
-  - date: "2026-05-08"
-    label: "Anniversary trip"
+  - date: "2026-05-15"
+    label: "6cai"
