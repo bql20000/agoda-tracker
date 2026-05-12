@@ -5,7 +5,7 @@
   },
   "41984142|2026-05-15": {
     "name": "ST Signature Bugis Middle",
-    "price": 135.0
+    "price": 134.0
   },
   "45214534|2026-05-08": {
     "name": "Amrise Hotel Kitchener",
@@ -29,7 +29,7 @@
   },
   "59828233|2026-05-15": {
     "name": "A Hotel Bugis",
-    "price": 151.0
+    "price": 150.0
   },
   "63668683|2026-05-08": {
     "name": "Hotel JJH",
@@ -37,7 +37,7 @@
   },
   "63668683|2026-05-15": {
     "name": "Hotel JJH",
-    "price": 111.0
+    "price": 110.0
   },
   "68596133|2026-05-08": {
     "name": "Social on Outram",
@@ -69,6 +69,6 @@
   },
   "90401|2026-05-15": {
     "name": "Link Hotel",
-    "price": 104.0
+    "price": 103.0
   }
 }
