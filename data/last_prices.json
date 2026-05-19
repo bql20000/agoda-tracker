@@ -7,6 +7,10 @@
     "name": "ST Signature Bugis Middle",
     "price": 9999.0
   },
+  "41984142|2026-05-22": {
+    "name": "ST Signature Bugis Middle",
+    "price": 79.0
+  },
   "45214534|2026-05-08": {
     "name": "Amrise Hotel Kitchener",
     "price": 9999.0
@@ -14,6 +18,10 @@
   "45214534|2026-05-15": {
     "name": "Amrise Hotel Kitchener",
     "price": 9999.0
+  },
+  "45214534|2026-05-22": {
+    "name": "Amrise Hotel Kitchener",
+    "price": 85.0
   },
   "59798370|2026-05-08": {
     "name": "A Hotel Dickson",
@@ -23,6 +31,10 @@
     "name": "A Hotel Dickson",
     "price": 9999.0
   },
+  "59798370|2026-05-22": {
+    "name": "A Hotel Dickson",
+    "price": 61.0
+  },
   "59828233|2026-05-08": {
     "name": "A Hotel Bugis",
     "price": 9999.0
@@ -30,6 +42,10 @@
   "59828233|2026-05-15": {
     "name": "A Hotel Bugis",
     "price": 9999.0
+  },
+  "59828233|2026-05-22": {
+    "name": "A Hotel Bugis",
+    "price": 93.0
   },
   "63668683|2026-05-08": {
     "name": "Hotel JJH",
@@ -39,11 +55,19 @@
     "name": "Hotel JJH",
     "price": 9999.0
   },
+  "63668683|2026-05-22": {
+    "name": "Hotel JJH",
+    "price": 66.0
+  },
   "68596133|2026-05-08": {
     "name": "Social on Outram",
     "price": 9999.0
   },
   "68596133|2026-05-15": {
+    "name": "Social on Outram",
+    "price": 9999.0
+  },
+  "68596133|2026-05-22": {
     "name": "Social on Outram",
     "price": 9999.0
   },
@@ -55,6 +79,10 @@
     "name": "A Hotel Farrer Park",
     "price": 9999.0
   },
+  "79994438|2026-05-22": {
+    "name": "A Hotel Farrer Park",
+    "price": 80.0
+  },
   "80245389|2026-05-08": {
     "name": "Social on Mayo",
     "price": 9999.0
@@ -63,6 +91,10 @@
     "name": "Social on Mayo",
     "price": 9999.0
   },
+  "80245389|2026-05-22": {
+    "name": "Social on Mayo",
+    "price": 75.0
+  },
   "90401|2026-05-08": {
     "name": "Link Hotel",
     "price": 9999.0
@@ -70,5 +102,9 @@
   "90401|2026-05-15": {
     "name": "Link Hotel",
     "price": 9999.0
+  },
+  "90401|2026-05-22": {
+    "name": "Link Hotel",
+    "price": 77.0
   }
 }
