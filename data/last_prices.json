@@ -11,6 +11,10 @@
     "name": "ST Signature Bugis Middle",
     "price": 9999.0
   },
+  "41984142|2026-07-14": {
+    "name": "ST Signature Bugis Middle",
+    "price": 121.0
+  },
   "45214534|2026-05-08": {
     "name": "Amrise Hotel Kitchener",
     "price": 9999.0
@@ -22,6 +26,10 @@
   "45214534|2026-05-22": {
     "name": "Amrise Hotel Kitchener",
     "price": 9999.0
+  },
+  "45214534|2026-07-14": {
+    "name": "Amrise Hotel Kitchener",
+    "price": 118.0
   },
   "59798370|2026-05-08": {
     "name": "A Hotel Dickson",
@@ -35,6 +43,10 @@
     "name": "A Hotel Dickson",
     "price": 9999.0
   },
+  "59798370|2026-07-14": {
+    "name": "A Hotel Dickson",
+    "price": 76.0
+  },
   "59828233|2026-05-08": {
     "name": "A Hotel Bugis",
     "price": 9999.0
@@ -46,6 +58,10 @@
   "59828233|2026-05-22": {
     "name": "A Hotel Bugis",
     "price": 9999.0
+  },
+  "59828233|2026-07-14": {
+    "name": "A Hotel Bugis",
+    "price": 115.0
   },
   "63668683|2026-05-08": {
     "name": "Hotel JJH",
@@ -59,6 +75,10 @@
     "name": "Hotel JJH",
     "price": 9999.0
   },
+  "63668683|2026-07-14": {
+    "name": "Hotel JJH",
+    "price": 90.0
+  },
   "68596133|2026-05-08": {
     "name": "Social on Outram",
     "price": 9999.0
@@ -70,6 +90,10 @@
   "68596133|2026-05-22": {
     "name": "Social on Outram",
     "price": 9999.0
+  },
+  "68596133|2026-07-14": {
+    "name": "Social on Outram",
+    "price": 129.0
   },
   "79994438|2026-05-08": {
     "name": "A Hotel Farrer Park",
@@ -83,6 +107,10 @@
     "name": "A Hotel Farrer Park",
     "price": 9999.0
   },
+  "79994438|2026-07-14": {
+    "name": "A Hotel Farrer Park",
+    "price": 113.0
+  },
   "80245389|2026-05-08": {
     "name": "Social on Mayo",
     "price": 9999.0
@@ -95,6 +123,10 @@
     "name": "Social on Mayo",
     "price": 9999.0
   },
+  "80245389|2026-07-14": {
+    "name": "Social on Mayo",
+    "price": 100.0
+  },
   "90401|2026-05-08": {
     "name": "Link Hotel",
     "price": 9999.0
@@ -106,5 +138,9 @@
   "90401|2026-05-22": {
     "name": "Link Hotel",
     "price": 9999.0
+  },
+  "90401|2026-07-14": {
+    "name": "Link Hotel",
+    "price": 170.0
   }
 }
