@@ -29,7 +29,7 @@
   },
   "45214534|2026-07-14": {
     "name": "Amrise Hotel Kitchener",
-    "price": 108.0
+    "price": 107.0
   },
   "59798370|2026-05-08": {
     "name": "A Hotel Dickson",
@@ -77,7 +77,7 @@
   },
   "63668683|2026-07-14": {
     "name": "Hotel JJH",
-    "price": 130.0
+    "price": 158.0
   },
   "68596133|2026-05-08": {
     "name": "Social on Outram",
@@ -141,6 +141,6 @@
   },
   "90401|2026-07-14": {
     "name": "Link Hotel",
-    "price": 146.0
+    "price": 145.0
   }
 }
